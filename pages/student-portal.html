@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Student Portal | KatinaSmartSchool</title>
+    <link rel="stylesheet" href="../assets/css/style.css">
+    <style>
+        body { background-color: #f4f7f6; display: block; }
+        
+        /* Navigation */
+        .navbar {
+            background-color: #2b8b83; color: white; padding: 15px 30px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .navbar h1 { font-size: 20px; margin: 0; }
+        .nav-links a { color: white; text-decoration: none; margin-right: 20px; font-weight: bold; }
+        
+        /* Layout */
+        .container { padding: 30px; max-width: 1000px; margin: 0 auto; }
+        
+        /* Profile Card */
+        .profile-card {
+            background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            margin-bottom: 30px; border-left: 5px solid #2b8b83;
+        }
+        .profile-card h2 { margin: 0 0 10px 0; color: #333; }
+        .profile-card p { margin: 5px 0; color: #666; }
+
+        /* Grid for Results and Fees */
+        .grid-container { display: flex; gap: 30px; flex-wrap: wrap; }
+        .card { flex: 1; min-width: 400px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .card h3 { color: #2b8b83; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-top: 0; }
+
+        /* Tables */
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
+        th { background-color: #f8f9fa; color: #333; }
+        
+        .badge { padding: 3px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; color: white; }
+        .bg-green { background-color: #28a745; }
+        .bg-blue { background-color: #17a2b8; }
+        .bg-orange { background-color: #fd7e14; }
+        .bg-red { background-color: #dc3545; }
+
+        .loading { text-align: center; padding: 50px; font-size: 18px; color: #666; }
+    </style>
+</head>
+<body>
+
+    <!-- Navigation -->
+    <div class="navbar">
+        <h1>KatinaSmartSchool - Portal</h1>
+        <div class="nav-links">
+            <a href="#" id="logoutBtn">Logout</a>
+        </div>
+    </div>
+
+    <div class="container" id="mainContainer">
+        <div class="loading">Loading your profile...</div>
+    </div>
+
+    <!-- Template for the Dashboard (Hidden initially) -->
+    <template id="dashboardTemplate">
+        <div class="profile-card">
+            <h2 id="studentName">Student Name</h2>
+            <p><strong>Admission No:</strong> <span id="studentAdm"></span></p>
+            <p><strong>Class:</strong> <span id="studentClass"></span></p>
+        </div>
+
+        <div class="grid-container">
+            <!-- Grades Card -->
+            <div class="card">
+                <h3>My Academic Results</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Subject</th>
+                            <th>Term</th>
+                            <th>Score</th>
+                            <th>Grade</th>
+                        </tr>
+                    </thead>
+                    <tbody id="gradesBody">
+                        <tr><td colspan="4">Loading results...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Fees Card -->
+            <div class="card">
+                <h3>My Fee Payments</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Receipt No</th>
+                            <th>Term</th>
+                            <th>Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody id="feesBody">
+                        <tr><td colspan="4">Loading payments...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </template>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../assets/js/config.js"></script>
+    <script>
+        // 1. Logout Logic
+        document.getElementById('logoutBtn').addEventListener('click', async (e) => {
+            e.preventDefault();
+            await db.auth.signOut();
+            window.location.href = '../index.html';
+        });
+
+        // 2. Load Portal Data
+        async function loadPortal() {
+            // Get current logged-in user
+            const { data: { user }, error: authError } = await db.auth.getUser();
+
+            if (authError || !user) {
+                window.location.href = '../index.html';
+                return;
+            }
+
+            // If the logged-in user is an Admin, redirect them to the admin dashboard
+            if (user.email.includes('@katikamu.ac.ug') && user.email === 'admin@katikamu.ac.ug') {
+                // (Optional: If you want admins to be redirected)
+                // window.location.href = 'admin-dashboard.html';
+            }
+
+            // Fetch the student record linked to this user_id
+            const { data: student, error: studentError } = await db.from('students').select('*').eq('user_id', user.id).maybeSingle(); // We expect exactly one match
+
+            if (studentError || !student) {
+                document.getElementById('mainContainer').innerHTML = `
+                    <div class="loading" style="color: red;">
+                        Error: Your login account is not linked to a student profile. <br>
+                        Please contact the school administrator.
+                    </div>
+                `;
+                return;
+            }
+
+            // Render the dashboard template
+            const container = document.getElementById('mainContainer');
+            const template = document.getElementById('dashboardTemplate').content.cloneNode(true);
+            
+            container.innerHTML = '';
+            container.appendChild(template);
+
+            // Fill in Profile Info
+            document.getElementById('studentName').textContent = student.full_name;
+            document.getElementById('studentAdm').textContent = student.admission_number;
+            document.getElementById('studentClass').textContent = student.class_level;
+
+            // Fetch Grades
+            const { data: grades } = await db
+                .from('grades')
+                .select('*')
+                .eq('student_id', student.id)
+                .order('term', { ascending: true });
+
+            const gradesBody = document.getElementById('gradesBody');
+            if (!grades || grades.length === 0) {
+                gradesBody.innerHTML = `<tr><td colspan="4" style="text-align:center;">No results published yet.</td></tr>`;
+            } else {
+                const getGradeBadge = (score) => {
+                    if (score >= 80) return '<span class="badge bg-green">A</span>';
+                    if (score >= 70) return '<span class="badge bg-blue">B</span>';
+                    if (score >= 60) return '<span class="badge bg-orange">C</span>';
+                    return '<span class="badge bg-red">F</span>';
+                };
+
+                gradesBody.innerHTML = grades.map(g => `
+                    <tr>
+                        <td><strong>${g.subject}</strong></td>
+                        <td>${g.term}</td>
+                        <td>${g.score}</td>
+                        <td>${getGradeBadge(g.score)}</td>
+                    </tr>
+                `).join('');
+            }
+
+            // Fetch Fees
+            const { data: fees } = await db
+                .from('fees')
+                .select('*')
+                .eq('student_id', student.id)
+                .order('payment_date', { ascending: false });
+
+            const feesBody = document.getElementById('feesBody');
+            if (!fees || fees.length === 0) {
+                feesBody.innerHTML = `<tr><td colspan="4" style="text-align:center;">No payments recorded yet.</td></tr>`;
+            } else {
+                feesBody.innerHTML = fees.map(f => {
+                    const dateObj = new Date(f.payment_date);
+                    const formattedDate = dateObj.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+                    const formattedAmount = f.amount_paid.toLocaleString();
+
+                    return `
+                        <tr>
+                            <td>${formattedDate}</td>
+                            <td>${f.receipt_number}</td>
+                            <td>${f.term}</td>
+                            <td style="color: green; font-weight: bold;">${formattedAmount}</td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+        }
+
+        // Initialize Portal
+        loadPortal();
+    </script>
+</body>
+</html>

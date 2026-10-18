@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | KatinaSmartSchool</title>
+    
+    <!-- Google Fonts for a clean look -->
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Link your CSS -->
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/login.css">
+</head>
+<body>
+
+    <div class="login-wrapper">
+        <div class="login-card">
+            
+            <!-- Top Logos -->
+            <div class="logo-area">
+                <h3 class="top-brand">dotSaidia</h3> <!-- Replace with <img> if you have the logo -->
+                <h1 class="main-title">KatinaSmartSchool</h1>
+                <p class="sub-title">School@dotcom era</p>
+            </div>
+
+            <p class="description-text">
+                Uganda standard school information management & administration system<br>
+                recommended by the Ministry of Education & Sports and Certified by the<br>
+                Uganda National Information Technology Authority, NITA-U
+            </p>
+
+            <!-- Login Form -->
+            <form id="loginForm">
+                <div class="input-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" required>
+                </div>
+                
+                <div class="input-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" required>
+                </div>
+                
+                <div class="forgot-area">
+                    <a href="pages/reset-password.html" class="forgot-link">Forgot password</a>
+                </div>
+
+                <div class="btn-area">
+                    <button type="submit" class="login-btn">LOGIN</button>
+                </div>
+            </form>
+
+            <!-- Bottom Stacked Links -->
+            <div class="login-links">
+                <a href="#">Login using school ID and User ID</a>
+                <a href="admission.html">Online admission</a>
+                <a href="#">Search schools for admissions</a>
+                <a href="#">KatinaSmartSchool self connection</a>
+                <a href="#">KatinaSmartSchool certified system admins</a>
+            </div>
+            
+        </div>
+    </div>
+
+    <!-- Load Supabase Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- Load your custom scripts -->
+    <script src="assets/js/config.js"></script>
+    <script src="assets/js/auth.js"></script>
+</body>
+</html>

@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Enter Grades | KatinaSmartSchool</title>
+    <link rel="stylesheet" href="../assets/css/style.css">
+    <style>
+        body { background-color: #f4f7f6; display: block; }
+        .navbar { background-color: #2b8b83; color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; }
+        .navbar h1 { font-size: 20px; margin: 0; }
+        .nav-links a { color: white; text-decoration: none; margin-right: 20px; font-weight: bold; }
+        .container { padding: 30px; max-width: 1200px; margin: 0 auto; display: flex; gap: 30px; flex-wrap: wrap; }
+        
+        .form-section { flex: 1; min-width: 300px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .form-section h2 { color: #2b8b83; margin-bottom: 20px; font-size: 18px; }
+        .input-group { margin-bottom: 15px; }
+        .input-group label { display: block; font-size: 13px; color: #555; margin-bottom: 5px; }
+        .input-group input, .input-group select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
+        .submit-btn { width: 100%; background: #2b8b83; color: white; border: none; padding: 12px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 15px; }
+        
+        .table-section { flex: 2; min-width: 500px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        
+        .table-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .table-header h2 { color: #2b8b83; font-size: 18px; margin: 0; }
+        
+        /* SEARCH BAR STYLES */
+        .search-bar { padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; width: 250px; }
+        .search-bar:focus { border-color: #2b8b83; outline: none; }
+
+        .table-wrapper { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
+        th { background-color: #f8f9fa; color: #333; font-weight: bold; }
+        tr:hover { background-color: #f1f1f1; }
+        
+        .delete-btn { background: #ff4d4d; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; font-size: 12px; }
+        .alert { padding: 10px; margin-bottom: 15px; border-radius: 4px; font-size: 14px; display: none; }
+        .alert-success { background: #d4edda; color: #155724; } .alert-error { background: #f8d7da; color: #721c24; }
+        .badge { padding: 3px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; color: white; }
+        .bg-green { background-color: #28a745; } .bg-blue { background-color: #17a2b8; } .bg-orange { background-color: #fd7e14; } .bg-red { background-color: #dc3545; }
+    </style>
+</head>
+<body>
+
+    <div class="navbar">
+        <h1>KatinaSmartSchool</h1>
+        <div class="nav-links">
+            <a href="javascript:history.back()">Back to Dashboard</a>
+            <a href="#" id="logoutBtn">Logout</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="form-section">
+            <h2>Enter Student Result</h2>
+            <div id="formAlert" class="alert"></div>
+            <form id="addGradeForm">
+                <div class="input-group">
+                    <label>Select Student *</label>
+                    <select id="studentSelect" required><option value="">Loading students...</option></select>
+                </div>
+                <div class="input-group">
+                    <label>Subject *</label>
+                    <select id="subject" required>
+                        <option value="">Select Subject</option><option value="Mathematics">Mathematics</option><option value="English">English</option><option value="Physics">Physics</option><option value="Chemistry">Chemistry</option><option value="Biology">Biology</option><option value="History">History</option><option value="Geography">Geography</option><option value="Literature">Literature</option><option value="CRE/IRE">CRE/IRE</option><option value="Computer Science">Computer Science</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Term *</label>
+                    <select id="term" required><option value="Term 1">Term 1</option><option value="Term 2">Term 2</option><option value="Term 3">Term 3</option></select>
+                </div>
+                <div class="input-group">
+                    <label>Score (0 - 100) *</label>
+                    <input type="number" id="score" min="0" max="100" required>
+                </div>
+                <button type="submit" class="submit-btn" id="saveBtn">Save Result</button>
+            </form>
+        </div>
+
+        <div class="table-section">
+            <div class="table-header">
+                <h2>Recent Results</h2>
+                <!-- SEARCH INPUT -->
+                <input type="text" id="searchGrades" class="search-bar" placeholder="Search by student or subject...">
+            </div>
+            <div class="table-wrapper">
+                <table>
+                    <thead><tr><th>Student</th><th>Subject</th><th>Term</th><th>Score</th><th>Action</th></tr></thead>
+                    <tbody id="gradesTableBody"><tr><td colspan="5" style="text-align:center;">Loading results...</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../assets/js/config.js"></script>
+    <script>
+        let currentTeacherId = null;
+        let allGrades = []; // Global array for search
+
+        db.auth.getSession().then(({ data: { session } }) => { if (!session) window.location.href = '../index.html'; });
+        document.getElementById('logoutBtn').addEventListener('click', async (e) => { e.preventDefault(); await db.auth.signOut(); window.location.href = '../index.html'; });
+
+        async function fetchTeacherProfile() {
+            const { data: { user } } = await db.auth.getUser();
+            if (user && user.email !== 'admin@katikamu.ac.ug') {
+                const { data: teacher } = await db.from('teachers').select('id').eq('user_id', user.id).maybeSingle();
+                if (teacher) currentTeacherId = teacher.id;
+            }
+        }
+
+        async function loadStudentsDropdown() {
+            const select = document.getElementById('studentSelect');
+            const { data: students } = await db.from('students').select('id, full_name, class_level').order('full_name', { ascending: true });
+            if (!students || students.length === 0) { select.innerHTML = '<option value="">No students found.</option>'; return; }
+            select.innerHTML = '<option value="">Select Student...</option>' + students.map(s => `<option value="${s.id}">${s.full_name} (${s.class_level})</option>`).join('');
+        }
+
+        async function loadGrades() {
+            const { data: grades, error } = await db.from('grades').select(`id, subject, score, term, students ( full_name )`).order('created_at', { ascending: false });
+            if (!error && grades) {
+                allGrades = grades;
+                renderTable(allGrades);
+            } else {
+                document.getElementById('gradesTableBody').innerHTML = `<tr><td colspan="5" style="color:red; text-align:center;">Failed to load results.</td></tr>`;
+            }
+        }
+
+        // Render Table Function (Takes filtered array)
+        function renderTable(gradesToRender) {
+            const tbody = document.getElementById('gradesTableBody');
+            if (gradesToRender.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;">No results found.</td></tr>`;
+                return;
+            }
+            const getScoreBadge = (score) => {
+                if (score >= 80) return '<span class="badge bg-green">A</span>';
+                if (score >= 70) return '<span class="badge bg-blue">B</span>';
+                if (score >= 60) return '<span class="badge bg-orange">C</span>';
+                return '<span class="badge bg-red">F</span>';
+            };
+            tbody.innerHTML = gradesToRender.map(g => `
+                <tr>
+                    <td><strong>${g.students.full_name}</strong></td>
+                    <td>${g.subject}</td>
+                    <td>${g.term}</td>
+                    <td>${g.score} ${getScoreBadge(g.score)}</td>
+                    <td><button class="delete-btn" onclick="deleteGrade('${g.id}')">Delete</button></td>
+                </tr>
+            `).join('');
+        }
+
+        // SEARCH FILTER LOGIC
+        document.getElementById('searchGrades').addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase();
+            const filtered = allGrades.filter(g => 
+                g.students.full_name.toLowerCase().includes(term) || 
+                g.subject.toLowerCase().includes(term) ||
+                g.term.toLowerCase().includes(term)
+            );
+            renderTable(filtered);
+        });
+
+        document.getElementById('addGradeForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('saveBtn'); btn.textContent = 'Saving...'; btn.disabled = true;
+            const newGrade = {
+                student_id: document.getElementById('studentSelect').value,
+                subject: document.getElementById('subject').value,
+                term: document.getElementById('term').value,
+                score: parseInt(document.getElementById('score').value),
+                teacher_id: currentTeacherId
+            };
+            const { error } = await db.from('grades').insert([newGrade]);
+            const alertBox = document.getElementById('formAlert');
+            if (error) {
+                alertBox.textContent = "Error: " + error.message; alertBox.className = "alert alert-error"; alertBox.style.display = 'block';
+            } else {
+                alertBox.textContent = "Result saved!"; alertBox.className = "alert alert-success"; alertBox.style.display = 'block';
+                document.getElementById('score').value = ''; document.getElementById('subject').value = '';
+                loadGrades();
+            }
+            btn.textContent = 'Save Result'; btn.disabled = false;
+        });
+
+        window.deleteGrade = async function(id) {
+            if (!confirm("Delete this result?")) return;
+            await db.from('grades').delete().eq('id', id);
+            loadGrades();
+        };
+
+        async function init() { await fetchTeacherProfile(); loadStudentsDropdown(); loadGrades(); }
+        init();
+    </script>
+</body>
+</html>

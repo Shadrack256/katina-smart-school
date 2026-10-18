@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Teacher Portal | KatinaSmartSchool</title>
+    <link rel="stylesheet" href="../assets/css/style.css">
+    <style>
+        body { background-color: #f4f7f6; display: block; }
+        
+        /* Navigation */
+        .navbar {
+            background-color: #2b8b83; color: white; padding: 15px 30px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .navbar h1 { font-size: 20px; margin: 0; }
+        .nav-links a { color: white; text-decoration: none; margin-right: 20px; font-weight: bold; }
+        
+        /* Layout */
+        .container { padding: 30px; max-width: 1000px; margin: 0 auto; }
+        
+        /* Profile Card */
+        .profile-card {
+            background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            margin-bottom: 30px; border-left: 5px solid #2b8b83;
+        }
+        .profile-card h2 { margin: 0 0 10px 0; color: #333; }
+        .profile-card p { margin: 5px 0; color: #666; }
+
+        /* Stats */
+        .stats-grid { display: flex; gap: 20px; margin-bottom: 30px; }
+        .stat-card {
+            background: white; padding: 20px; border-radius: 8px; flex: 1;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-top: 4px solid #2b8b83;
+            text-align: center;
+        }
+        .stat-card h3 { color: #666; font-size: 14px; margin-bottom: 10px; }
+        .stat-card .number { font-size: 28px; font-weight: bold; color: #2b8b83; }
+
+        /* Action Buttons */
+        .actions { margin-bottom: 30px; }
+        .btn {
+            background: #2b8b83; color: white; padding: 12px 20px; text-decoration: none;
+            border-radius: 4px; font-weight: bold; display: inline-block;
+        }
+        .btn:hover { background: #206b64; }
+
+        /* Table */
+        .table-section { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .table-section h3 { color: #2b8b83; margin-bottom: 15px; }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
+        th { background-color: #f8f9fa; }
+    </style>
+</head>
+<body>
+
+    <!-- Navigation -->
+    <div class="navbar">
+        <h1>KatinaSmartSchool - Teacher</h1>
+        <div class="nav-links">
+            <a href="#" id="logoutBtn" style="background: #ff4d4d; padding: 8px 15px; border-radius: 4px;">Logout</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Profile Card -->
+        <div class="profile-card">
+            <h2>Welcome, <span id="teacherName">Loading...</span></h2>
+            <p><strong>Staff ID:</strong> <span id="teacherId"></span> | <strong>Subject:</strong> <span id="teacherSubject"></span></p>
+            <p>Katikamu SDA Secondary School, Nakaseke</p>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>TOTAL STUDENTS IN SCHOOL</h3>
+                <div class="number" id="totalStudents">0</div>
+            </div>
+            <div class="stat-card">
+                <h3>GRADES YOU HAVE ENTERED</h3>
+                <div class="number" id="totalGrades">0</div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="actions">
+            <a href="manage-grades.html" class="btn">➕ Enter New Grades</a>
+        </div>
+
+        <!-- Recent Grades Table -->
+        <div class="table-section">
+            <h3>Your Recent Grade Entries</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Student Name</th>
+                        <th>Subject</th>
+                        <th>Term</th>
+                        <th>Score</th>
+                    </tr>
+                </thead>
+                <tbody id="recentGradesBody">
+                    <tr><td colspan="5" style="text-align:center;">Loading...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../assets/js/config.js"></script>
+    <script>
+        // Logout
+        document.getElementById('logoutBtn').addEventListener('click', async (e) => {
+            e.preventDefault();
+            await db.auth.signOut();
+            window.location.href = '../index.html';
+        });
+
+        async function loadTeacherDashboard() {
+            const { data: { user } } = await db.auth.getUser();
+            if (!user) {
+                window.location.href = '../index.html';
+                return;
+            }
+
+            // 1. Fetch Teacher Profile
+            const { data: teacher } = await db.from('teachers').select('*').eq('user_id', user.id).maybeSingle();
+            
+            if (!teacher) {
+                alert("Teacher profile not found. Please contact Admin.");
+                await db.auth.signOut();
+                window.location.href = '../index.html';
+                return;
+            }
+
+            document.getElementById('teacherName').textContent = teacher.full_name;
+            document.getElementById('teacherId').textContent = teacher.staff_id;
+            document.getElementById('teacherSubject').textContent = teacher.subject || 'N/A';
+
+            // 2. Get Total Students Count
+            const { count: studentCount } = await db.from('students').select('*', { count: 'exact', head: true });
+            document.getElementById('totalStudents').textContent = studentCount || 0;
+
+            // 3. Get Total Grades Entered by THIS Teacher
+            const { count: gradeCount } = await db.from('grades').select('*', { count: 'exact', head: true }).eq('teacher_id', teacher.id);
+            document.getElementById('totalGrades').textContent = gradeCount || 0;
+
+            // 4. Get Recent Grades Entered by THIS Teacher (Limit 5)
+            const { data: recentGrades } = await db
+                .from('grades')
+                .select(`*, students ( full_name )`)
+                .eq('teacher_id', teacher.id)
+                .order('created_at', { ascending: false })
+                .limit(5);
+
+            const tbody = document.getElementById('recentGradesBody');
+            if (recentGrades && recentGrades.length > 0) {
+                tbody.innerHTML = recentGrades.map(g => {
+                    const date = new Date(g.created_at).toLocaleDateString('en-GB');
+                    return `
+                        <tr>
+                            <td>${date}</td>
+                            <td><strong>${g.students.full_name}</strong></td>
+                            <td>${g.subject}</td>
+                            <td>${g.term}</td>
+                            <td><strong>${g.score}</strong></td>
+                        </tr>
+                    `;
+                }).join('');
+            } else {
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;">You haven't entered any grades yet.</td></tr>`;
+            }
+        }
+
+        loadTeacherDashboard();
+    </script>
+</body>
+</html>

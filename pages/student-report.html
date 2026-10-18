@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Student Report Card | KatinaSmartSchool</title>
+    <link rel="stylesheet" href="../assets/css/style.css">
+    <style>
+        body { background-color: #f4f7f6; display: block; }
+        
+        /* Navigation */
+        .navbar {
+            background-color: #2b8b83; color: white; padding: 15px 30px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .navbar h1 { font-size: 20px; margin: 0; }
+        .nav-links a { color: white; text-decoration: none; margin-right: 20px; font-weight: bold; }
+        
+        /* Layout */
+        .container { padding: 30px; max-width: 900px; margin: 0 auto; }
+        
+        /* Controls (Form) */
+        .controls {
+            background: white; padding: 20px; border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 30px;
+            display: flex; gap: 20px; align-items: flex-end;
+        }
+        .input-group { flex: 1; }
+        .input-group label { display: block; font-size: 13px; color: #555; margin-bottom: 5px; }
+        .input-group select {
+            width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px;
+        }
+        .btn {
+            background: #2b8b83; color: white; border: none;
+            padding: 11px 20px; border-radius: 4px; cursor: pointer; font-weight: bold;
+        }
+        .btn:hover { background: #206b64; }
+
+        /* The Report Card Design */
+        .report-card {
+            background: white; padding: 40px; border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1); display: none; /* Hidden until searched */
+        }
+        
+        .rc-header { text-align: center; border-bottom: 2px solid #2b8b83; padding-bottom: 20px; margin-bottom: 20px; }
+        .rc-header h2 { color: #2b8b83; margin: 0; font-size: 28px; }
+        .rc-header p { margin: 5px 0; color: #555; font-size: 14px; }
+        
+        .student-info { display: flex; justify-content: space-between; margin-bottom: 30px; background: #f8f9fa; padding: 15px; border-radius: 4px; }
+        .student-info p { margin: 5px 0; font-size: 15px; }
+        
+        .rc-table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+        .rc-table th, .rc-table td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        .rc-table th { background-color: #f2f2f2; font-weight: bold; }
+        
+        .rc-summary { text-align: right; font-size: 16px; margin-bottom: 30px; }
+        .rc-summary p { margin: 5px 0; }
+        .rc-summary .final-grade { font-size: 20px; font-weight: bold; color: #2b8b83; }
+        
+        .rc-footer { display: flex; justify-content: space-between; margin-top: 50px; border-top: 1px solid #eee; padding-top: 20px; }
+        .signature-line { border-bottom: 1px solid #000; width: 200px; margin-bottom: 5px; }
+        .rc-footer p { font-size: 13px; color: #555; margin: 0; }
+
+        /* PRINT STYLES - This makes it look perfect on paper */
+        @media print {
+            body { background: white; margin: 0; padding: 0; }
+            .no-print { display: none !important; }
+            .container { padding: 0; max-width: 100%; }
+            .report-card { box-shadow: none; padding: 0; border: none; display: block !important; }
+            .rc-header h2 { color: #000; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navigation (Hidden when printing) -->
+    <div class="navbar no-print">
+        <h1>KatinaSmartSchool</h1>
+        <div class="nav-links">
+            <a href="admin-dashboard.html">Dashboard</a>
+            <a href="manage-grades.html">Enter Grades</a>
+            <a href="#" id="logoutBtn">Logout</a>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="container">
+        
+        <!-- Controls (Hidden when printing) -->
+        <div class="controls no-print">
+            <div class="input-group">
+                <label>Select Student</label>
+                <select id="studentSelect">
+                    <option value="">Loading students...</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label>Select Term</label>
+                <select id="termSelect">
+                    <option value="Term 1">Term 1</option>
+                    <option value="Term 2">Term 2</option>
+                    <option value="Term 3">Term 3</option>
+                </select>
+            </div>
+            <button class="btn" id="generateBtn">Generate Report</button>
+            <button class="btn" id="printBtn" style="background: #333; display: none;">Print Report</button>
+        </div>
+
+        <!-- The Report Card -->
+        <div class="report-card" id="reportCard">
+            
+            <div class="rc-header">
+                <h2>KATIKAMU SDA SECONDARY SCHOOL</h2>
+                <p>P.O. Box 100, Nakaseke, Uganda</p>
+                <p><strong>END OF TERM REPORT CARD</strong></p>
+            </div>
+
+            <div class="student-info">
+                <div>
+                    <p><strong>Name:</strong> <span id="rcName">-</span></p>
+                    <p><strong>Admission No:</strong> <span id="rcAdm">-</span></p>
+                </div>
+                <div>
+                    <p><strong>Class:</strong> <span id="rcClass">-</span></p>
+                    <p><strong>Term:</strong> <span id="rcTerm">-</span></p>
+                </div>
+            </div>
+
+            <table class="rc-table">
+                <thead>
+                    <tr>
+                        <th>Subject</th>
+                        <th>Score</th>
+                        <th>Grade</th>
+                        <th>Comment</th>
+                    </tr>
+                </thead>
+                <tbody id="rcTableBody">
+                    <!-- Grades will be inserted here -->
+                </tbody>
+            </table>
+
+            <div class="rc-summary">
+                <p>Total Score: <strong id="rcTotal">0</strong></p>
+                <p>Average Score: <strong id="rcAverage">0</strong>%</p>
+                <p class="final-grade">Final Grade: <span id="rcFinalGrade">-</span></p>
+            </div>
+
+            <div class="rc-footer">
+                <div>
+                    <div class="signature-line"></div>
+                    <p>Class Teacher's Signature</p>
+                </div>
+                <div>
+                    <div class="signature-line"></div>
+                    <p>Head Teacher's Signature</p>
+                </div>
+                <div>
+                    <div class="signature-line"></div>
+                    <p>Parent/Guardian Signature</p>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../assets/js/config.js"></script>
+    <script>
+        // 1. Protect the page
+        db.auth.getSession().then(({ data: { session } }) => {
+            if (!session) window.location.href = '../index.html';
+        });
+
+        // 2. Logout
+        document.getElementById('logoutBtn').addEventListener('click', async (e) => {
+            e.preventDefault();
+            await db.auth.signOut();
+            window.location.href = '../index.html';
+        });
+
+        // 3. Fetch Students for Dropdown
+        async function loadStudentsDropdown() {
+            const select = document.getElementById('studentSelect');
+            const { data: students, error } = await db
+                .from('students')
+                .select('id, full_name, admission_number, class_level')
+                .order('full_name', { ascending: true });
+
+            if (error || students.length === 0) {
+                select.innerHTML = '<option value="">No students found.</option>';
+                return;
+            }
+
+            select.innerHTML = '<option value="">Select Student...</option>' + 
+                students.map(s => `<option value="${s.id}" data-adm="${s.admission_number}" data-name="${s.full_name}" data-class="${s.class_level}">${s.full_name} (${s.admission_number})</option>`).join('');
+        }
+
+        // 4. Generate Report Card Logic
+        document.getElementById('generateBtn').addEventListener('click', async () => {
+            const select = document.getElementById('studentSelect');
+            const term = document.getElementById('termSelect').value;
+            
+            if (!select.value) {
+                alert("Please select a student first.");
+                return;
+            }
+
+            const btn = document.getElementById('generateBtn');
+            btn.textContent = 'Generating...';
+            btn.disabled = true;
+
+            // Get selected student data from the dropdown's data attributes
+            const selectedOption = select.options[select.selectedIndex];
+            const studentName = selectedOption.getAttribute('data-name');
+            const studentAdm = selectedOption.getAttribute('data-adm');
+            const studentClass = selectedOption.getAttribute('data-class');
+
+            // Set the header details
+            document.getElementById('rcName').textContent = studentName;
+            document.getElementById('rcAdm').textContent = studentAdm;
+            document.getElementById('rcClass').textContent = studentClass;
+            document.getElementById('rcTerm').textContent = term;
+
+            // Fetch grades for this specific student and term
+            const { data: grades, error } = await db
+                .from('grades')
+                .select('*')
+                .eq('student_id', select.value)
+                .eq('term', term)
+                .order('subject', { ascending: true });
+
+            if (error) {
+                alert("Error fetching grades: " + error.message);
+                btn.textContent = 'Generate Report';
+                btn.disabled = false;
+                return;
+            }
+
+            const tbody = document.getElementById('rcTableBody');
+            
+            if (grades.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" style="text-align: center;">No grades found for this term.</td></tr>`;
+                document.getElementById('rcTotal').textContent = "0";
+                document.getElementById('rcAverage').textContent = "0";
+                document.getElementById('rcFinalGrade').textContent = "-";
+            } else {
+                let totalScore = 0;
+
+                tbody.innerHTML = grades.map(g => {
+                    totalScore += g.score;
+                    let letter = 'F';
+                    let comment = 'Needs Improvement';
+
+                    if (g.score >= 80) { letter = 'A'; comment = 'Excellent'; }
+                    else if (g.score >= 70) { letter = 'B'; comment = 'Very Good'; }
+                    else if (g.score >= 60) { letter = 'C'; comment = 'Good'; }
+                    else if (g.score >= 50) { letter = 'D'; comment = 'Fair'; }
+
+                    return `
+                        <tr>
+                            <td>${g.subject}</td>
+                            <td>${g.score}</td>
+                            <td><strong>${letter}</strong></td>
+                            <td>${comment}</td>
+                        </tr>
+                    `;
+                }).join('');
+
+                // Calculate Summary Math
+                const average = (totalScore / grades.length).toFixed(1);
+                let finalGrade = 'F';
+                if (average >= 80) finalGrade = 'A';
+                else if (average >= 70) finalGrade = 'B';
+                else if (average >= 60) finalGrade = 'C';
+                else if (average >= 50) finalGrade = 'D';
+
+                document.getElementById('rcTotal').textContent = totalScore;
+                document.getElementById('rcAverage').textContent = average;
+                document.getElementById('rcFinalGrade').textContent = finalGrade;
+            }
+
+            // Show the report card and the print button
+            document.getElementById('reportCard').style.display = 'block';
+            document.getElementById('printBtn').style.display = 'inline-block';
+            
+            btn.textContent = 'Generate Report';
+            btn.disabled = false;
+        });
+
+        // 5. Print Button Logic
+        document.getElementById('printBtn').addEventListener('click', () => {
+            window.print(); // This triggers the browser's print dialog
+        });
+
+        // Initialize
+        loadStudentsDropdown();
+    </script>
+</body>
+</html>
